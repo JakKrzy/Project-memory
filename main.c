@@ -1,18 +1,19 @@
 #include <gtk/gtk.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
+#include <time.h>
+
 #include "fifo.h"
-
-static struct card {
-    int id, isInGame, iconId;
-    char *state;
-};
+#include "cards.h"
 
 
+int iconIdArr[8] = {2};
 static GtkWidget *window;
 static PipesPtr stream;
 static char myId = 'B', yourId = 'A';
 int cardsC = 0;
+int selected1, selected2;
 
 void alert(char *message) {
     GtkWidget *dialog;
@@ -33,8 +34,37 @@ static void updateCardsC(GtkWidget *widget, GtkWidget *text) {
     }
 }
 
-static void startTheGame(GtkWidget *widget, GtkWidget *grid) {
-    alert("LET THE GAME BEGIN!");
+static void startTheGame(GtkWidget *widget, GtkWidget *window) {
+    if(cardsC == 0) {alert("Please put valid number of pairs to play with.");}
+    else {
+        alert("LET THE GAME BEGIN!");
+        gtk_container_foreach (GTK_CONTAINER (window), (void*) gtk_widget_destroy, NULL);
+
+        CardPtr arr[cardsC];
+        for(int i = 0; i < cardsC; i++) {
+            arr[i] = NULL;
+        }
+
+        srand(time(NULL));
+
+        // TO FIX: This doesnt really work
+        for(int i = 0; i < cardsC; i++) {
+            int pos;
+            while(iconIdArr[i] != 0) {
+                do {
+                    pos = (rand() % cardsC);
+                    g_print("%d ", pos);
+                } while(arr[pos] != NULL);
+                arr[pos] = newCard(i);
+
+                iconIdArr[i]--;
+            }
+        }
+
+        GtkWidget *grid = gtk_grid_new();
+        //TODO: add cards from arr as buttons
+    }
+
 }
 
 static void quit(GtkWidget *widget, gpointer data) {
@@ -71,12 +101,12 @@ int main(int argc, char *argv[])
         gtk_grid_attach(GTK_GRID(grid), label, 0,1,1,1);
 
         GtkWidget *text = gtk_entry_new();
-        gtk_entry_set_text(GTK_ENTRY(text), " ");
+        gtk_entry_set_text(GTK_ENTRY(text), "");
         g_signal_connect(G_OBJECT(text), "activate", G_CALLBACK(updateCardsC),(gpointer) text);
         gtk_grid_attach(GTK_GRID(grid), text, 0,2,1,1);
 
         GtkWidget *button = gtk_button_new_with_label("Start!");
-        g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(startTheGame), (gpointer) grid);
+        g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(startTheGame), (gpointer) window);
         gtk_grid_attach(GTK_GRID(grid), button, 0, 3, 1, 1);
 
         button = gtk_button_new_with_label("Quit");
