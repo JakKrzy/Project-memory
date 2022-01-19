@@ -11,6 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
+				<Option parameters="B" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -31,7 +32,11 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="fifo.h" />
 		<Unit filename="main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="win-fifo.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Extensions>
