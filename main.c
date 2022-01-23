@@ -8,11 +8,13 @@
 #include "cards.h"
 
 
-int iconIdArr[8] = {2};
+int iconIdArr[8] = {0};
+CardPtr cardArr[16];
 static GtkWidget *window;
-static PipesPtr stream;
+//static PipesPtr stream;
 static char myId = 'B', yourId = 'A';
-int cardsC = 0;
+int cardsC = 16;
+char turn = 'A';
 int selected1, selected2;
 
 void alert(char *message) {
@@ -23,55 +25,26 @@ void alert(char *message) {
     gtk_widget_destroy (dialog);
 }
 
-static void updateCardsC(GtkWidget *widget, GtkWidget *text) {
-    int temp;
-    sscanf(gtk_entry_get_text(GTK_ENTRY(text)), "%d", &temp);
-    if(temp >= 2 && temp <= 8) {
-        cardsC = temp * 2;
-        alert("Successfully updated cards number.");
-    } else {
-        alert("Number must be in range of 2 to 8.");
-    }
-}
-
-static void startTheGame(GtkWidget *widget, GtkWidget *window) {
-    if(cardsC == 0) {alert("Please put valid number of pairs to play with.");}
-    else {
-        alert("LET THE GAME BEGIN!");
-        gtk_container_foreach (GTK_CONTAINER (window), (void*) gtk_widget_destroy, NULL);
-
-        CardPtr arr[cardsC];
-        for(int i = 0; i < cardsC; i++) {
-            arr[i] = NULL;
-        }
-
-        srand(time(NULL));
-
-        // TO FIX: This doesnt really work
-        for(int i = 0; i < cardsC; i++) {
-            int pos;
-            while(iconIdArr[i] != 0) {
-                do {
-                    pos = (rand() % cardsC);
-                    g_print("%d ", pos);
-                } while(arr[pos] != NULL);
-                arr[pos] = newCard(i);
-
-                iconIdArr[i]--;
-            }
-        }
-
-        GtkWidget *grid = gtk_grid_new();
-        //TODO: add cards from arr as buttons
-    }
-
-}
-
 static void quit(GtkWidget *widget, gpointer data) {
     //closePipes(stream);
     gtk_main_quit();
 }
 
+static void selectCard(GtkWidget *widget, gpointer icon) {
+    g_printf("Selected card icon: %d\n", icon);
+}
+
+static void forfeit(GtkWidget *widget, gpointer data) {
+    char winner[28];
+    sprintf(winner, "Player %c has won the game!!!", yourId);
+    alert(winner);
+}
+
+static void save(GtkWidget *widget, gpointer data) {
+    alert("Game saved!");
+    //closePipes(stream);
+    gtk_main_quit();
+}
 
 int main(int argc, char *argv[])
 {
@@ -91,32 +64,41 @@ int main(int argc, char *argv[])
 
     GtkWidget *grid = gtk_grid_new();
     gtk_grid_set_row_spacing(GTK_GRID(grid), 10);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
     gtk_container_add(GTK_CONTAINER(window), grid);
 
-    GtkWidget *label = gtk_label_new("MEMORY GAME");
-    gtk_grid_attach(GTK_GRID(grid), label, 0,0,1,1);
+    GtkWidget *button;
 
-    if(myId == 'A') {
-        label = gtk_label_new("Enter a number of card pairs you want to play with (2 - 8): ");
-        gtk_grid_attach(GTK_GRID(grid), label, 0,1,1,1);
+    srand(time(NULL));
 
-        GtkWidget *text = gtk_entry_new();
-        gtk_entry_set_text(GTK_ENTRY(text), "");
-        g_signal_connect(G_OBJECT(text), "activate", G_CALLBACK(updateCardsC),(gpointer) text);
-        gtk_grid_attach(GTK_GRID(grid), text, 0,2,1,1);
-
-        GtkWidget *button = gtk_button_new_with_label("Start!");
-        g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(startTheGame), (gpointer) window);
-        gtk_grid_attach(GTK_GRID(grid), button, 0, 3, 1, 1);
-
-        button = gtk_button_new_with_label("Quit");
-        g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(quit), NULL);
-        gtk_grid_attach(GTK_GRID(grid), button, 0, 4, 1, 1);
-    } else {
-        label = gtk_label_new("Waiting for Player A");
-        gtk_grid_attach(GTK_GRID(grid), label, 0, 1, 1, 1);
+    for(int i = 0; i < cardsC; i++) {
+        cardArr[i] = NULL;
     }
 
+    for(int i = 0; i < cardsC/2; i++) {
+        while(iconIdArr[i] < 2) {
+            int pos;
+            do {
+                pos = rand() % cardsC;
+            } while (cardArr[pos] != NULL);
+            cardArr[pos] = newCard(i);
+            iconIdArr[i]++;
+        }
+    }
+
+    for(int i = 0; i < cardsC; i++) {
+        button = gtk_button_new();
+        gtk_grid_attach(GTK_GRID(grid), button, i, 0, 1,1);
+        g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(selectCard), (gpointer) cardArr[i]->iconId);
+    }
+
+    button = gtk_button_new_with_label("Forfeit");
+    g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(forfeit), NULL);
+    gtk_grid_attach(GTK_GRID(grid), button, 0, 1, 4,1);
+
+    button = gtk_button_new_with_label("Save & quit");
+    g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(save), NULL);
+    gtk_grid_attach(GTK_GRID(grid), button, 4, 1, 4,1);
 
     gtk_widget_show_all(window);
     gtk_main();
