@@ -34,44 +34,37 @@ static void updateCardsC(GtkWidget *widget, GtkWidget *text) {
     }
 }
 
-static void startTheGame(GtkWidget *widget, GtkWidget *window) {
-    if(cardsC == 0) {alert("Please put valid number of pairs to play with.");}
-    else {
-        alert("LET THE GAME BEGIN!");
-        gtk_container_foreach (GTK_CONTAINER (window), (void*) gtk_widget_destroy, NULL);
-
-        CardPtr arr[cardsC];
-        for(int i = 0; i < cardsC; i++) {
-            arr[i] = NULL;
-        }
-
-        srand(time(NULL));
-
-        // TO FIX: This doesnt really work
-        for(int i = 0; i < cardsC; i++) {
-            int pos;
-            while(iconIdArr[i] != 0) {
-                do {
-                    pos = (rand() % cardsC);
-                    g_print("%d ", pos);
-                } while(arr[pos] != NULL);
-                arr[pos] = newCard(i);
-
-                iconIdArr[i]--;
-            }
-        }
-
-        GtkWidget *grid = gtk_grid_new();
-        //TODO: add cards from arr as buttons
-    }
-
-}
-
 static void quit(GtkWidget *widget, gpointer data) {
     //closePipes(stream);
     gtk_main_quit();
 }
 
+static void gameStart() {
+    alert("SOMEGF");
+}
+
+static void mainMenu(GtkWidget *grid) {
+    GtkWidget *label = gtk_label_new("MEMORY GAME");
+    gtk_grid_attach(GTK_GRID(grid), label, 0,0,1,1);
+
+
+    label = gtk_label_new("Enter a number of card pairs you want to play with (2 - 8): ");
+    gtk_grid_attach(GTK_GRID(grid), label, 0,1,1,1);
+
+    GtkWidget *text = gtk_entry_new();
+    gtk_entry_set_text(GTK_ENTRY(text), "");
+    g_signal_connect(G_OBJECT(text), "activate", G_CALLBACK(updateCardsC),(gpointer) text);
+    gtk_grid_attach(GTK_GRID(grid), text, 0,2,1,1);
+
+    GtkWidget *button = gtk_button_new_with_label("Start!");
+    g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(gameStart), NULL);
+    gtk_grid_attach(GTK_GRID(grid), button, 0, 3, 1, 1);
+
+    button = gtk_button_new_with_label("Quit");
+    g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(quit), NULL);
+    gtk_grid_attach(GTK_GRID(grid), button, 0, 4, 1, 1);
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -93,30 +86,7 @@ int main(int argc, char *argv[])
     gtk_grid_set_row_spacing(GTK_GRID(grid), 10);
     gtk_container_add(GTK_CONTAINER(window), grid);
 
-    GtkWidget *label = gtk_label_new("MEMORY GAME");
-    gtk_grid_attach(GTK_GRID(grid), label, 0,0,1,1);
-
-    if(myId == 'A') {
-        label = gtk_label_new("Enter a number of card pairs you want to play with (2 - 8): ");
-        gtk_grid_attach(GTK_GRID(grid), label, 0,1,1,1);
-
-        GtkWidget *text = gtk_entry_new();
-        gtk_entry_set_text(GTK_ENTRY(text), "");
-        g_signal_connect(G_OBJECT(text), "activate", G_CALLBACK(updateCardsC),(gpointer) text);
-        gtk_grid_attach(GTK_GRID(grid), text, 0,2,1,1);
-
-        GtkWidget *button = gtk_button_new_with_label("Start!");
-        g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(startTheGame), (gpointer) window);
-        gtk_grid_attach(GTK_GRID(grid), button, 0, 3, 1, 1);
-
-        button = gtk_button_new_with_label("Quit");
-        g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(quit), NULL);
-        gtk_grid_attach(GTK_GRID(grid), button, 0, 4, 1, 1);
-    } else {
-        label = gtk_label_new("Waiting for Player A");
-        gtk_grid_attach(GTK_GRID(grid), label, 0, 1, 1, 1);
-    }
-
+    mainMenu(grid);
 
     gtk_widget_show_all(window);
     gtk_main();
