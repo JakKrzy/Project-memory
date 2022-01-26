@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1642949530 source:c:\users\kjaku\documents\c\project-memory\project-memory\main.c
+1643224840 source:c:\users\kjaku\documents\c\project-memory\project-memory\main.c
 	<gtk/gtk.h>
 	<stdlib.h>
 	<stdio.h>
@@ -3017,7 +3017,7 @@
 
 1641510029 c:\msys64\mingw64\include\gtk-3.0\gtk\gtk-autocleanups.h
 
-1642606465 source:c:\users\kjaku\documents\c\project-memory\project-memory\win-fifo.c
+1643064256 source:c:\users\kjaku\documents\c\project-memory\project-memory\win-fifo.c
 	<stdio.h>
 	<stdlib.h>
 	<string.h>
@@ -3027,12 +3027,12 @@
 1390659522 c:\users\kjaku\documents\c\project-memory\project-memory\fifo.h
 	<stdbool.h>
 
-1642629688 source:c:\users\kjaku\documents\c\project-memory\project-memory\cards.c
+1643218677 source:c:\users\kjaku\documents\c\project-memory\project-memory\cards.c
 	<stdlib.h>
 	<stdio.h>
 	"cards.h"
 
-1642629711 c:\users\kjaku\documents\c\project-memory\project-memory\cards.h
+1643066506 c:\users\kjaku\documents\c\project-memory\project-memory\cards.h
 	<stdlib.h>
 	<stdio.h>
 

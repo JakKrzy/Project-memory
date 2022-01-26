@@ -2,10 +2,11 @@
 #include <stdio.h>
 
 typedef struct card {
-    int iconId;
+    int ID, iconId;
     char *state;
+    // Possible states: active, selected, inactive
 } Card;
 
 typedef Card *CardPtr;
 
-CardPtr newCard(int iconId);
+CardPtr newCard(int ID,int iconId);

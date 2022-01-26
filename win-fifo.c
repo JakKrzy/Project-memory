@@ -91,10 +91,9 @@ void sendStringToPipe(PipesPtr pipes,const char *data)
                      &numBytesWritten, // will store actual amount of data sent
                      NULL // not using overlapped IO
                  );
-//if (!result)
- //   {
-  //      pokazBlad("Failed to send data");
-   //  }
+    if (!result){
+        alert("Failed to send data");
+    }
 }
 
 bool getStringFromPipe(PipesPtr pipes,char *buffer,size_t size)
