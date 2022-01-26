@@ -3,7 +3,7 @@
 
 typedef struct card {
     int ID, iconId;
-    char *state;
+    char *state, *iconName;
     // Possible states: active, selected, inactive
 } Card;
 

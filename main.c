@@ -1,7 +1,6 @@
 #include <gtk/gtk.h>
 #include <stdlib.h>
 #include <stdio.h>
-
 #include <math.h>
 #include <time.h>
 
@@ -10,11 +9,15 @@
 
 
 int iconIdArr[8] = {0};
+const char iconNameArr[8][15] = {
+    "call-start", "edit-delete", "go-home", "list-add", "system-run",
+    "zoom-in", "go-jump", "edit-redo",};
 CardPtr cardArr[16];
 static GtkWidget *window, *buttons[16];
 //static PipesPtr stream;
 static char myId = 'B', yourId = 'A';
 int pointsA = 0;
+GtkWidget *points;
 int cardsC = 16;
 
 CardPtr selected1 = NULL, selected2 = NULL;
@@ -38,7 +41,7 @@ static void selectCard(GtkWidget *button, CardPtr card) {
 
     if(selectedCount == 0 && strcmp(card->state, "active") == 0) {
         sprintf(label, "%d", card->iconId);
-        gtk_button_set_label(GTK_BUTTON(button), label);
+        gtk_button_set_label(GTK_BUTTON(button), NULL);
         selected1 = card;
         selectedCount++;
         selected1->state = "selected";
@@ -53,7 +56,7 @@ static void selectCard(GtkWidget *button, CardPtr card) {
     }
     else if(selectedCount == 1 && strcmp(card->state, "active") == 0) {
         sprintf(label, "%d", card->iconId);
-        gtk_button_set_label(GTK_BUTTON(button), label);
+        gtk_button_set_label(GTK_BUTTON(button), NULL);
         selected2 = card;
         selectedCount++;
         selected2->state = "selected";
@@ -67,16 +70,22 @@ static void selectCard(GtkWidget *button, CardPtr card) {
     alert(winner);
 } */
 
-static void check(GtkWidget *widget, gpointer data) {
+static void check(GtkWidget *widget, GtkWidget *grid) {
     if(selectedCount == 2) {
         if(selected1->iconId == selected2->iconId) {
             pointsA++;
+            gchar str[10];
+            sprintf(str, "Points: %d", pointsA);
+            gtk_label_set_label(GTK_LABEL(points), str);
+
             selected1->state = "inactive";
             selected2->state = "inactive";
             gtk_widget_set_sensitive(GTK_WIDGET(buttons[selected1->ID]), FALSE);
             gtk_widget_set_sensitive(GTK_WIDGET(buttons[selected2->ID]), FALSE);
             selectedCount = 0;
             g_print("PAIRED CARDS: %d %d", selected1->ID, selected2->ID);
+
+            cardsC -= 2;
         } else {
             Sleep(500);
             selectedCount = 0;
@@ -86,8 +95,51 @@ static void check(GtkWidget *widget, gpointer data) {
             gtk_button_set_label(GTK_BUTTON(buttons[selected2->ID]), " ");
         }
     }
+    if(cardsC == 0) {
+        alert("You win!");
+        quit();
+    }
 }
 
+static void generateCards() {
+    srand(time(NULL));
+    for(int i = 0; i < cardsC; i++) { cardArr[i] = NULL; }
+    for(int i = 0; i < cardsC/2; i++) {
+        while(iconIdArr[i] < 2) {
+            int pos;
+            do {
+                pos = rand() % cardsC;
+            } while (cardArr[pos] != NULL);
+            cardArr[pos] = newCard(pos, i);
+            cardArr[pos]->iconName = iconNameArr[i];
+            iconIdArr[i]++;
+        }
+    }
+}
+
+static void renderButtons(GtkWidget *grid) {
+    for(int i = 0; i < cardsC; i++) { // Rendering cards as buttons
+        GtkWidget *image;
+        gchar iconName[16];
+        sprintf(iconName, "%s", cardArr[i]->iconName);
+        image = gtk_image_new_from_icon_name(iconName, GTK_ICON_SIZE_BUTTON);
+        buttons[i] = gtk_button_new_with_label(" ");
+        gtk_button_set_image(GTK_BUTTON(buttons[i]), image);
+        if(i < cardsC/2) gtk_grid_attach(GTK_GRID(grid), buttons[i], i, 1, 1,1);
+        else gtk_grid_attach(GTK_GRID(grid), buttons[i], i - (cardsC/2), 2, 1,1);
+        g_signal_connect(G_OBJECT(buttons[i]), "clicked", G_CALLBACK(selectCard), (CardPtr) cardArr[i]);
+        g_signal_connect(G_OBJECT(buttons[i]), "leave", G_CALLBACK(check), grid);
+    }
+}
+
+static void gameStart(GtkWidget *grid) {
+    generateCards();
+    gchar str[10];
+    sprintf(str, "Points: %d", pointsA);
+    points = gtk_label_new(str);
+    gtk_grid_attach(GTK_GRID(grid), points, 0, 0,1,1);
+    renderButtons(grid);
+}
 
 int main(int argc, char *argv[])
 {
@@ -112,27 +164,7 @@ int main(int argc, char *argv[])
     gtk_grid_set_column_homogeneous(GTK_GRID(grid), TRUE);
     gtk_container_add(GTK_CONTAINER(window), grid);
 
-    // Randomly placing cards
-    srand(time(NULL));
-    for(int i = 0; i < cardsC; i++) { cardArr[i] = NULL; }
-    for(int i = 0; i < cardsC/2; i++) {
-        while(iconIdArr[i] < 2) {
-            int pos;
-            do {
-                pos = rand() % cardsC;
-            } while (cardArr[pos] != NULL);
-            cardArr[pos] = newCard(pos, i);
-            iconIdArr[i]++;
-        }
-    }
-
-    for(int i = 0; i < cardsC; i++) { // Rendering cards as buttons
-        buttons[i] = gtk_button_new_with_label(" ");
-        if(i < cardsC/2) gtk_grid_attach(GTK_GRID(grid), buttons[i], i, 1, 1,1);
-        else gtk_grid_attach(GTK_GRID(grid), buttons[i], i - (cardsC/2), 2, 1,1);
-        g_signal_connect(G_OBJECT(buttons[i]), "clicked", G_CALLBACK(selectCard), (CardPtr) cardArr[i]);
-        g_signal_connect(G_OBJECT(buttons[i]), "leave", G_CALLBACK(check), NULL);
-    }
+    gameStart(grid);
 
     // Footer buttons
     /*
