@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1643636785 source:c:\users\kjaku\documents\c\project-memory\project-memory\main.c
+1643818315 source:c:\users\kjaku\documents\c\project-memory\project-memory\main.c
 	<gtk/gtk.h>
 	<stdlib.h>
 	<stdio.h>
@@ -3027,7 +3027,7 @@
 1390659522 c:\users\kjaku\documents\c\project-memory\project-memory\fifo.h
 	<stdbool.h>
 
-1643232036 source:c:\users\kjaku\documents\c\project-memory\project-memory\cards.c
+1643798203 source:c:\users\kjaku\documents\c\project-memory\project-memory\cards.c
 	<stdlib.h>
 	<stdio.h>
 	"cards.h"
