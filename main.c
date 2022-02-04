@@ -16,8 +16,6 @@ CardPtr cardArr[16];
 static GtkWidget *window, *buttons[16], *grid;
 static PipesPtr stream;
 static char myId = 'B', yourId = 'A';
-int pointsA, pointsB;
-GtkWidget *points;
 int begCardC;
 int cardsC = 0;
 char turn = 'A';
@@ -31,19 +29,23 @@ FILE *saveGame;
 void alert(char *message);
 static void quit();
 static void selectCard(GtkWidget *button, CardPtr card);
-static void forfeit(GtkWidget *widget, gpointer data);
+static void forfeit(char *id);
 static void check(GtkWidget *widget);
 static void generateCards();
 void saveQuit();
 void loadGame();
+void startFromSave();
 void renderButtons();
 void gameStart();
 void updateCardsC(GtkWidget *widget, GtkWidget *text);
+static gboolean listenForInst(gpointer data);
+static void sendToPipe(char instr[6]);
+static gboolean disableButtons();
 void mainMenu();
 
 int main(int argc, char *argv[])
 {
-    //if((stream = initPipes(argc, argv)) == NULL) return 1;
+    if((stream = initPipes(argc, argv)) == NULL) return 1;
     if(argc == 2 && strcmp(argv[1], "A") == 0) {
         myId = 'A'; yourId = 'B';
     }
@@ -88,7 +90,7 @@ static void quit() {
 
 static void selectCard(GtkWidget *button, CardPtr card) {
     gchar label[1];
-
+    
     if(selectedCount == 0 && strcmp(card->state, "active") == 0) {
         sprintf(label, "%d", card->iconId);
         gtk_button_set_label(GTK_BUTTON(button), NULL);
@@ -112,11 +114,18 @@ static void selectCard(GtkWidget *button, CardPtr card) {
         selected2->state = "selected";
         g_print("Selected card id: %d, icon: %d\n\n", selected2->ID,selected2->iconId);
     }
+    if(turn == myId) {
+        char inst[6];
+        sprintf(inst, "SE %d", card->ID);
+        sendToPipe(inst);
+        if(turn == 'A') turn = 'B';
+                else turn = 'A';
+    }
 }
 
-static void forfeit(GtkWidget *widget, gpointer data) {
-   char winner[28];
-    sprintf(winner, "Player %c has won the game!!!", yourId);
+static void forfeit(char *id) {
+    char winner[28];
+    sprintf(winner, "Player %c has won the game!!!", *id);
     alert(winner);
     mainMenu();
 }
@@ -124,10 +133,6 @@ static void forfeit(GtkWidget *widget, gpointer data) {
 static void check(GtkWidget *widget) {
     if(selectedCount == 2) {
         if(selected1->iconId == selected2->iconId) {
-            pointsA++;
-            gchar str[10];
-            sprintf(str, "Points: %d", pointsA);
-            gtk_label_set_label(GTK_LABEL(points), str);
 
             selected1->state = "inactive";
             selected2->state = "inactive";
@@ -147,8 +152,8 @@ static void check(GtkWidget *widget) {
         }
     }
     if(cardsC == 0) {
-        alert("You win!");
-        mainMenu();
+        forfeit(&myId);
+        sendToPipe("WINNR");
     }
 }
 
@@ -168,14 +173,21 @@ static void generateCards() {
     }
 }
 
-void saveQuit() {
+void save() {
     saveGame = fopen("save.dat", "w");
     fprintf(saveGame, "%d\n", begCardC);
     fprintf(saveGame, "%d\n", cardsC);
     for(int i = 0; i < begCardC; i++) {
-        fprintf(saveGame, CARD_FORMAT, cardArr[i]->ID, cardArr[i]->iconId, (strcmp(cardArr[i]->state, "inactive") == 0 ? 'i' : 'a'));
+        char state;
+        if(strcmp(cardArr[i]->state, "inactive") == 0) state = 'i';
+        else state = 'a';
+        fprintf(saveGame, CARD_FORMAT, cardArr[i]->ID, cardArr[i]->iconId, state);
     }
     fclose(saveGame);
+}
+
+void saveQuit() {
+    save();
     quit();
 }
 
@@ -184,6 +196,7 @@ void loadGame() {
     fscanf(saveGame, "%d\n", &begCardC);
     fscanf(saveGame, "%d\n", &cardsC);
 
+
     int id, iconId;
     char state;
     for(int i = 0; i < begCardC; i++) {
@@ -191,17 +204,17 @@ void loadGame() {
         cardArr[i] = newCard(id, iconId);
         if(state == 'i') cardArr[i]->state = "inactive";
         cardArr[i]->iconName = iconNameArr[iconId];
-        g_print("LOADED: %d, %s, %s\n", cardArr[i]->ID, cardArr[i]->state, cardArr[i]->iconName);
     }
+
     gtk_container_foreach(GTK_CONTAINER(grid), (void*)gtk_widget_destroy, NULL);
-    gchar str[10];
-    pointsA = begCardC - (cardsC/2);
-    sprintf(str, "Points: %d", pointsA);
-    points = gtk_label_new(str);
-    gtk_grid_attach(GTK_GRID(grid), points, 0, 0,1,1);
     renderButtons();
     gtk_widget_show_all(window);
     fclose(saveGame);
+}
+
+void startFromSave() {
+    loadGame();
+    sendToPipe("START");
 }
 
 void renderButtons() {
@@ -223,9 +236,8 @@ void renderButtons() {
 
     }
 
-    // Footer buttons
     GtkWidget *button = gtk_button_new_with_label("Forfeit");
-    g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(forfeit), NULL);
+    g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(forfeit), &yourId);
     gtk_grid_attach(GTK_GRID(grid), button, 0, 3, begCardC/4,1);
 
     button = gtk_button_new_with_label("Save & quit");
@@ -239,16 +251,25 @@ void gameStart() {
     else {
         begCardC = cardsC;
         for(int i = 0; i < 8; i++) iconIdArr[i] = 0;
-        pointsA = 0;
 
         gtk_container_foreach(GTK_CONTAINER(grid), (void*)gtk_widget_destroy, NULL);
         generateCards();
-        gchar str[10];
-        sprintf(str, "Points: %d", pointsA);
-        points = gtk_label_new(str);
-        gtk_grid_attach(GTK_GRID(grid), points, 0, 0,1,1);
+
+        FILE *cards;
+        cards = fopen("save.dat", "w");
+        fprintf(saveGame, "%d\n", begCardC);
+        fprintf(saveGame, "%d\n", begCardC);
+        for(int i = 0; i < begCardC; i++) {
+            fprintf(cards, CARD_FORMAT, cardArr[i]->ID, cardArr[i]->iconId, (strcmp(cardArr[i]->state, "inactive") == 0 ? 'i' : 'a'));
+        }
+        fclose(cards);
+
+        sendToPipe("START");
+
         renderButtons();
         gtk_widget_show_all(window);
+
+
     }
 }
 
@@ -263,6 +284,47 @@ void updateCardsC(GtkWidget *widget, GtkWidget *text) {
     } else {
         alert("Number must be in range of 2 to 8.");
     }
+}
+
+static gboolean listenForInst(gpointer data) {
+    gchar in[6] = "";
+    if(getStringFromPipe(stream, in + strlen(in), 6)) {
+        if(strcmp(in, "START") == 0) {
+            loadGame();
+        } else if(strcmp(in, "WINNR") == 0) {
+            mainMenu();
+            forfeit(&yourId);
+        }
+        else {
+            char inst[6]; int arg;
+            sscanf(in, "%s %d", inst, &arg);
+            if(strcmp(inst, "SE") == 0) {
+                selectCard(buttons[arg], cardArr[arg]);
+                if(turn == 'A') turn = 'B';
+                else turn = 'A';
+            }
+        }
+    }
+    return TRUE;
+}
+
+static void sendToPipe(char instr[6]) {
+    sendStringToPipe(stream, instr);
+}
+
+static gboolean disableButtons() {
+    if(turn != myId) {
+        for(int i = 0; i < begCardC; i++) {
+            gtk_widget_set_sensitive(buttons[i], FALSE);
+        }
+    } else {
+        for(int i = 0; i < begCardC; i++) {
+            if(strcmp(cardArr[i]->state, "inactive") != 0) {
+                gtk_widget_set_sensitive(buttons[i], TRUE);
+            }
+        }
+    }
+    return TRUE;
 }
 
 void mainMenu() {
@@ -280,24 +342,37 @@ void mainMenu() {
     g_signal_connect(G_OBJECT(text), "activate", G_CALLBACK(updateCardsC),(gpointer) text);
     gtk_grid_attach(GTK_GRID(grid), text, 0,2,1,1);
 
+
     GtkWidget *button = gtk_button_new_with_label("New Game");
     g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(gameStart), NULL);
     gtk_grid_attach(GTK_GRID(grid), button, 0, 3, 1, 1);
 
+    if(myId == 'B') {
+        gtk_widget_set_sensitive(button, FALSE);
+        gtk_widget_set_sensitive(text, FALSE);
+    }
+
     saveGame = fopen("save.dat", "r");
 
     button = gtk_button_new_with_label("Continue");
-    g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(loadGame), NULL);
+    g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(startFromSave), NULL);
     gtk_grid_attach(GTK_GRID(grid), button, 0, 4, 1, 1);
     if(saveGame == NULL) gtk_widget_set_sensitive(button, FALSE);
 
     fclose(saveGame);
+
+    if(myId == 'B') {
+        gtk_widget_set_sensitive(button, FALSE);
+    }
 
     button = gtk_button_new_with_label("Quit");
     g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(quit), NULL);
     gtk_grid_attach(GTK_GRID(grid), button, 0, 5, 1, 1);
 
     gtk_widget_show_all(window);
+
+    g_timeout_add(100, listenForInst, NULL);
+    g_timeout_add(100, disableButtons, NULL);
 }
 
 

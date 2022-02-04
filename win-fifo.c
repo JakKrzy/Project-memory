@@ -9,7 +9,7 @@ struct pipes {
     int isA;
 };
 
-
+void alert(char *message);
 static HANDLE openOutPipe(char *name);
 static HANDLE openInPipe(char *name);
 
